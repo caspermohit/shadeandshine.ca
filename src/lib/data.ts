@@ -138,6 +138,50 @@ export const ppfPackages = [
   },
 ];
 
+/** Window tint VLT levels for interactive glass-only visualizer */
+export const tintLevels = [
+  {
+    id: "clear",
+    name: "Factory Clear",
+    vlt: 100,
+    label: "No Tint",
+    description: "Stock glass with no film applied.",
+    image: "/tints/clear.png",
+  },
+  {
+    id: "light-50",
+    name: "Light Tint",
+    vlt: 50,
+    label: "50% VLT",
+    description: "Soft shade with strong daytime visibility.",
+    image: "/tints/light-50.png",
+  },
+  {
+    id: "medium-35",
+    name: "Medium Tint",
+    vlt: 35,
+    label: "35% VLT",
+    description: "Balanced privacy, glare cut, and heat reduction.",
+    image: "/tints/medium-35.png",
+  },
+  {
+    id: "dark-20",
+    name: "Dark Tint",
+    vlt: 20,
+    label: "20% VLT",
+    description: "Deep cabin shade with a bold street look.",
+    image: "/tints/dark-20.png",
+  },
+  {
+    id: "limo-5",
+    name: "Limo Tint",
+    vlt: 5,
+    label: "5% VLT",
+    description: "Maximum privacy limo black on glass only.",
+    image: "/tints/limo-5.png",
+  },
+];
+
 export type PricingTier = {
   sedan?: number;
   suv?: number;

@@ -11,10 +11,10 @@ import { BrandLogo } from "@/components/BrandLogo";
 const navLinks = [
   { href: "#services", label: "Services" },
   { href: "#ppf", label: "PPF" },
-  { href: "#transformations", label: "Results" },
+  { href: "#tint", label: "Tint" },
   { href: "#wrap-studio", label: "Wraps" },
   { href: "#gallery", label: "Work" },
-  { href: "#pricing", label: "Ceramic" },
+  { href: "#pricing", label: "Pricing" },
   { href: "#contact", label: "Contact" },
 ];
 

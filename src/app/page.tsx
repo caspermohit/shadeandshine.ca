@@ -8,6 +8,7 @@ import { StatsBand } from "@/components/StatsBand";
 import { ServicesSection } from "@/components/ServicesSection";
 import { WhyChooseUs } from "@/components/WhyChooseUs";
 import { PPFVisualizer } from "@/components/PPFVisualizer";
+import { TintVisualizer } from "@/components/TintVisualizer";
 import { TransformationsSection } from "@/components/BeforeAfterSlider";
 import { WrapStudio } from "@/components/WrapStudio";
 import { GallerySection } from "@/components/GallerySection";
@@ -27,6 +28,7 @@ function Site() {
         <ServicesSection />
         <WhyChooseUs />
         <PPFVisualizer />
+        <TintVisualizer />
         <TransformationsSection />
         <WrapStudio />
         <GallerySection />
