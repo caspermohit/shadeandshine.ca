@@ -671,7 +671,7 @@ export const wrapColors = [
     name: "Midnight Black",
     gradient: "from-zinc-900 via-zinc-800 to-black",
     accent: "#121318",
-    image: "/wraps/midnight.png",
+    image: "/wraps/v2/midnight.png",
     shimmer: false,
   },
   {
@@ -679,7 +679,7 @@ export const wrapColors = [
     name: "Arctic White",
     gradient: "from-slate-100 via-white to-zinc-200",
     accent: "#eceef2",
-    image: "/wraps/arctic.png",
+    image: "/wraps/v2/arctic.png",
     shimmer: false,
   },
   {
@@ -687,7 +687,7 @@ export const wrapColors = [
     name: "Crimson Red",
     gradient: "from-red-700 via-red-600 to-red-900",
     accent: "#a81622",
-    image: "/wraps/crimson.png",
+    image: "/wraps/v2/crimson.png",
     shimmer: false,
   },
   {
@@ -695,7 +695,7 @@ export const wrapColors = [
     name: "Ocean Blue",
     gradient: "from-blue-600 via-blue-500 to-indigo-700",
     accent: "#1c4ea8",
-    image: "/wraps/ocean.png",
+    image: "/wraps/v2/ocean.png",
     shimmer: false,
   },
   {
@@ -703,7 +703,7 @@ export const wrapColors = [
     name: "Aurora Shift",
     gradient: "from-violet-600 via-fuchsia-500 to-cyan-400",
     accent: "#7830be",
-    image: "/wraps/aurora.png",
+    image: "/wraps/v2/aurora.png",
     shimmer: true,
   },
   {
@@ -711,7 +711,7 @@ export const wrapColors = [
     name: "Chameleon",
     gradient: "from-emerald-400 via-amber-400 to-rose-500",
     accent: "#28aa6e",
-    image: "/wraps/chameleon.png",
+    image: "/wraps/v2/chameleon.png",
     shimmer: true,
   },
   {
@@ -719,7 +719,7 @@ export const wrapColors = [
     name: "Satin Chrome",
     gradient: "from-zinc-300 via-zinc-100 to-zinc-400",
     accent: "#9498a2",
-    image: "/wraps/satin-chrome.png",
+    image: "/wraps/v2/satin-chrome.png",
     shimmer: false,
   },
   {
@@ -727,7 +727,7 @@ export const wrapColors = [
     name: "Matte Forge",
     gradient: "from-stone-600 via-stone-500 to-stone-700",
     accent: "#767068",
-    image: "/wraps/matte-forge.png",
+    image: "/wraps/v2/matte-forge.png",
     shimmer: false,
   },
 ];

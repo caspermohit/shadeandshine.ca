@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-Analyze the wrap-studio base car and bake color variants as PNGs.
+Bake Dream Wrap color variants from the white Porsche studio plate.
 
-Uses public/ppf-car.png (white Porsche, transparent BG) as the canvas —
-same asset as the PPF visualizer — so Dream Wrap feels consistent.
+Source preference: public/wraps/source.png → public/ppf-car.png → img fallback.
+Writes colored PNGs into public/wraps/ (no Bentley; paint-only recolor).
 """
 
 from __future__ import annotations
@@ -15,10 +15,13 @@ import numpy as np
 from PIL import Image
 
 ROOT = Path(__file__).resolve().parents[1]
-SRC = ROOT / "public" / "ppf-car.png"
-# Prefer dedicated wrap source if present
-ALT = ROOT / "public" / "img" / "porsche-white-bg-e1760411459923.png"
-OUT = ROOT / "public" / "wraps"
+OUT = ROOT / "public" / "wraps" / "v2"
+# Prefer dedicated wrap source, then shared PPF Porsche
+SRC_CANDIDATES = [
+    ROOT / "public" / "wraps" / "source.png",
+    ROOT / "public" / "ppf-car.png",
+    ROOT / "public" / "img" / "porsche-white-bg-e1760411459923.png",
+]
 ANALYSIS = OUT / "analysis.json"
 
 WRAPS = [
@@ -63,9 +66,11 @@ def paint_mask(lum: np.ndarray, alpha: np.ndarray) -> np.ndarray:
     Keeps tires / grille / deep glass mostly untouched.
     """
     a = alpha.astype(np.float32) / 255.0
-    # Body paint on this white car is bright; glass/trim fall off below ~70
-    body = smoothstep(lum, 35.0, 95.0)
-    # Soften extreme specular so chrome bits stay believable
+    # Include shadowed rockers/doors; leave deep glass/trim (very dark) alone
+    body = smoothstep(lum, 42.0, 95.0)
+    # Kill the darkest cavities (grille holes, tire voids) harder
+    body *= smoothstep(lum, 12.0, 38.0)
+    body = np.power(np.clip(body, 0, 1), 0.55)
     return np.clip(body * a, 0.0, 1.0)
 
 
@@ -77,13 +82,12 @@ def colorize_shade(
     x_norm: np.ndarray,
 ) -> np.ndarray:
     t = np.clip(lum / 255.0, 0.0, 1.0)
-    # Slightly lift midtones so dark wraps still read shape
-    shade = np.power(t, 0.78 + 0.22 * matte)
+    # Remap white-car luminance into a wrap shading curve (hue stays readable)
+    shade = np.power(np.clip(0.22 + 0.68 * t, 0.0, 1.0), 0.9 + 0.15 * matte)
 
     c0 = np.array(color, dtype=np.float32)
     if shift is not None:
         c1 = np.array(shift, dtype=np.float32)
-        # Color-shift: blend hues by horizontal position + luminance
         mix = np.clip(0.35 + 0.55 * x_norm + 0.25 * (1.0 - t), 0.0, 1.0)
         base_c = c0 * (1.0 - mix[..., None]) + c1 * mix[..., None]
     else:
@@ -91,13 +95,14 @@ def colorize_shade(
 
     painted = base_c * shade[..., None]
 
-    # Specular: matte kills highlights; gloss keeps white sheen
-    highlight = np.clip((t - (0.55 + 0.22 * matte)) / (0.45 - 0.12 * matte), 0.0, 1.0)
+    # Specular: tint toward wrap hue so white cars don't wash pink/grey
+    highlight = np.clip((t - (0.78 + 0.12 * matte)) / (0.22 - 0.06 * matte), 0.0, 1.0)
     highlight = highlight * highlight
-    sheen = 1.0 - 0.8 * matte
-    painted = painted * (1.0 - highlight[..., None] * 0.5 * sheen) + (
-        255.0 * highlight[..., None] * 0.95 * sheen
-        + painted * highlight[..., None] * (1.0 - 0.95 * sheen)
+    sheen = 1.0 - 0.9 * matte
+    # Lifted wrap color for specular, not pure white
+    spec = np.clip(base_c * 1.35 + 70.0, 0, 255)
+    painted = painted * (1.0 - highlight[..., None] * 0.55 * sheen) + (
+        spec * highlight[..., None] * 0.55 * sheen
     )
 
     return np.clip(painted, 0, 255)
@@ -120,48 +125,28 @@ def studio_spotlights(h: int, w: int) -> np.ndarray:
 
 def apply_midnight(rgb: np.ndarray, alpha: np.ndarray) -> np.ndarray:
     """
-    Glossy midnight black tuned for a black studio UI:
-    deep body, thin speculars, cool edge rim — not washed grey.
+    Glossy midnight black on the white Porsche plate.
+    Uses the shared paint mask + deep shade so body reads black, not silver.
     """
-    from PIL import ImageFilter as _IF
-
     lum = 0.2126 * rgb[:, :, 0] + 0.7152 * rgb[:, :, 1] + 0.0722 * rgb[:, :, 2]
     h, w = lum.shape
     t = np.clip(lum / 255.0, 0.0, 1.0)
     mask = paint_mask(lum, alpha)
     lights = studio_spotlights(h, w)
 
-    a_img = Image.fromarray(alpha.astype(np.uint8), "L")
-    edge = np.array(a_img.filter(_IF.FIND_EDGES), dtype=np.float32) / 255.0
-    edge = (
-        np.array(
-            Image.fromarray((np.clip(edge, 0, 1) * 255).astype(np.uint8)).filter(
-                _IF.GaussianBlur(2.5)
-            ),
-            dtype=np.float32,
-        )
-        / 255.0
-    )
-    edge = np.clip(edge * 1.8, 0, 1) * (alpha.astype(np.float32) / 255.0)
+    # Deep cool black body
+    body = np.array([14.0, 15.0, 20.0], dtype=np.float32)
+    shade = np.power(np.clip(0.12 + 0.55 * t, 0.0, 1.0), 1.05)
+    painted = body * shade[..., None]
 
-    body_color = np.array([18.0, 19.0, 24.0], dtype=np.float32)
-    shade = np.power(np.clip(t * 1.05 + 0.04, 0, 1), 0.9)
-    painted = np.clip(body_color * (shade[..., None] * 2.2), 0, 48)
+    # Thin cool speculars only (keep black readable on black UI)
+    spec = np.clip((t - 0.82) / 0.18, 0.0, 1.0) ** 2.6
+    spec = np.clip(spec + lights * np.clip((t - 0.78) / 0.22, 0, 1) * 0.25, 0, 1) * mask
+    gloss = np.array([160.0, 170.0, 190.0], dtype=np.float32)
+    painted = painted * (1.0 - spec[..., None] * 0.7) + gloss * (spec[..., None] * 0.7)
 
-    yy, xx = np.mgrid[0:h, 0:w].astype(np.float32)
-    xn, yn = xx / max(w - 1, 1), yy / max(h - 1, 1)
-    side_fill = np.exp(-(((xn - 0.62) / 0.38) ** 2 + ((yn - 0.52) / 0.42) ** 2))
-    side_fill = side_fill * mask * (0.55 + 0.45 * t)
-    painted = painted + side_fill[..., None] * np.array([14.0, 15.0, 20.0])
-
-    spec = np.clip((t - 0.80) / 0.20, 0.0, 1.0) ** 2.4
-    spec = np.clip(spec + lights * np.clip((t - 0.72) / 0.28, 0, 1) * 0.35, 0, 1) * mask
-    painted = painted * (1.0 - spec[..., None]) + np.array([230.0, 236.0, 245.0]) * spec[
-        ..., None
-    ]
-
-    painted = painted + edge[..., None] * np.array([55.0, 65.0, 85.0])
-    painted = painted + (lights * mask * 0.22)[..., None] * np.array([20.0, 24.0, 34.0])
+    # Soft side fill so silhouette doesn't disappear
+    painted = painted + (lights * mask * 0.14)[..., None] * np.array([18.0, 22.0, 32.0])
 
     out = rgb * (1.0 - mask[..., None]) + np.clip(painted, 0, 255) * mask[..., None]
     return np.dstack([np.clip(out, 0, 255).astype(np.uint8), alpha.astype(np.uint8)])
@@ -188,22 +173,22 @@ def apply_wrap(
     # Bake soft white spotlights onto body so wrap color reads clearly
     lights = studio_spotlights(h, w) * mask * (1.0 - 0.55 * matte)
     # Soft-light toward white without crushing chroma in midtones
-    out = out + lights[..., None] * (255.0 - out) * 0.28
+    out = out + lights[..., None] * (255.0 - out) * 0.12
     # Extra specular glints on gloss finishes
-    glint = np.clip(lights - 0.62, 0.0, 1.0) ** 2 * (1.0 - matte)
-    out = out + glint[..., None] * 40.0
+    glint = np.clip(lights - 0.72, 0.0, 1.0) ** 2 * (1.0 - matte)
+    out = out + glint[..., None] * 28.0
     # Keep dark/matte wraps readable on black UI backgrounds
     if matte >= 0.45 or (color[0] + color[1] + color[2]) < 120:
-        out = out + mask[..., None] * 22.0
+        out = out + mask[..., None] * 14.0
 
     rgba = np.dstack([np.clip(out, 0, 255).astype(np.uint8), alpha])
     return rgba
 
 
 def main() -> None:
-    src = SRC if SRC.exists() else ALT
-    if not src.exists():
-        raise SystemExit(f"Missing source car image: {SRC} or {ALT}")
+    src = next((p for p in SRC_CANDIDATES if p.exists()), None)
+    if src is None:
+        raise SystemExit(f"Missing source car image. Tried: {SRC_CANDIDATES}")
 
     OUT.mkdir(parents=True, exist_ok=True)
     im = Image.open(src).convert("RGBA")
@@ -215,16 +200,6 @@ def main() -> None:
     stats["source"] = str(src.relative_to(ROOT))
     print("Analysis:", json.dumps(stats, indent=2))
 
-    # Base PNG (normalized export)
-    base_path = OUT / "base.png"
-    im.save(base_path, optimize=True)
-    print(f"Wrote {base_path.relative_to(ROOT)}")
-
-    # Debug mask preview
-    lum = 0.2126 * rgb[:, :, 0] + 0.7152 * rgb[:, :, 1] + 0.0722 * rgb[:, :, 2]
-    mask = (paint_mask(lum, alpha) * 255).astype(np.uint8)
-    Image.fromarray(mask).save(OUT / "_paint-mask.png")
-
     manifest = []
     for wid, name, color, matte, shift, shimmer in WRAPS:
         rgba = apply_wrap(rgb, alpha, color, matte, shift, wrap_id=wid)
@@ -233,7 +208,7 @@ def main() -> None:
         entry = {
             "id": wid,
             "name": name,
-            "src": f"/wraps/{wid}.png",
+            "src": f"/wraps/v2/{wid}.png",
             "accent": "#{:02x}{:02x}{:02x}".format(*color),
             "shimmer": shimmer,
             "matte": matte,
@@ -241,6 +216,7 @@ def main() -> None:
         manifest.append(entry)
         print(f"Wrote {path.relative_to(ROOT)}  ({name})")
 
+    # Keep manifest local to script runs; UI reads wrap paths from data.ts
     ANALYSIS.write_text(json.dumps({"analysis": stats, "wraps": manifest}, indent=2))
     print(f"Wrote {ANALYSIS.relative_to(ROOT)}")
 

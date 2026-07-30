@@ -49,7 +49,7 @@ export function WrapStudio() {
 
         <div className="grid items-center gap-12 lg:grid-cols-2">
           <div className="relative">
-            <div className="relative aspect-[16/10] overflow-hidden rounded-2xl border border-white/10 bg-[#050505]">
+            <div className="relative aspect-[16/9] overflow-hidden rounded-2xl border border-white/10 bg-[#050505] sm:aspect-[21/9]">
               {/* Studio floor wash + center glow so light wraps stay visible */}
               <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-white/[0.07] to-transparent" />
               <div
